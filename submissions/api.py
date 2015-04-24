@@ -15,6 +15,7 @@ from submissions.serializers import (
     SubmissionSerializer, StudentItemSerializer, ScoreSerializer, JsonFieldError
 )
 from submissions.models import Submission, StudentItem, Score, ScoreSummary
+from .models import score_set
 
 logger = logging.getLogger("submissions.api")
 
@@ -702,6 +703,7 @@ def set_score(submission_uuid, points_earned, points_possible):
             "points_possible": points_possible,
         }
     )
+    print "\n\n\n\nSetting score to {} out of {} for {}".format(points_earned, points_possible, str(submission_model))
     if not score.is_valid():
         logger.exception(score.errors)
         raise SubmissionInternalError(score.errors)
@@ -716,6 +718,11 @@ def set_score(submission_uuid, points_earned, points_possible):
     try:
         score_model = score.save()
         _log_score(score_model)
+        # Send a signal out to any listeners who are waiting for score change events.
+        score_set.send(
+            sender=None, max_value=points_possible,
+            value=points_earned, user=submission_model.student_item.student_id, location=submission_model.item_id
+        )
     except IntegrityError:
         pass
 

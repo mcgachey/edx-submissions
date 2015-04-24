@@ -14,13 +14,17 @@ import logging
 
 from django.db import models, DatabaseError
 from django.db.models.signals import post_save
-from django.dispatch import receiver
+from django.dispatch import receiver, Signal
 from django.utils.timezone import now
 from django_extensions.db.fields import UUIDField
 
 
 logger = logging.getLogger(__name__)
 
+
+score_set = Signal(
+    providing_args=['max_value', 'value', 'user', 'location']
+)
 
 class StudentItem(models.Model):
     """Represents a single item for a single course for a single user.
@@ -247,6 +251,10 @@ class ScoreSummary(models.Model):
             elif score.to_float() > score_summary.highest.to_float():
                 score_summary.highest = score
             score_summary.save()
+            score_set.send(
+                sender=None, max_value=score.points_possible,
+                value=score.points_earned, user=score.student_item.student_id, location=score.student_item.item_id
+            )
         except ScoreSummary.DoesNotExist:
             ScoreSummary.objects.create(
                 student_item=score.student_item,
