@@ -721,7 +721,7 @@ def set_score(submission_uuid, points_earned, points_possible):
         # Send a signal out to any listeners who are waiting for score change events.
         score_set.send(
             sender=None, max_value=points_possible,
-            value=points_earned, user=submission_model.student_item.student_id, location=submission_model.item_id
+            value=points_earned, user=submission_model.student_item.student_id, location=submission_model.student_item.item_id
         )
     except IntegrityError:
         pass
